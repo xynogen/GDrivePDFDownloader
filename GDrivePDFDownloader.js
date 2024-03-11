@@ -45,7 +45,7 @@ function getFileExtension(filename) {
 
 function addDownload(onclick) {
     let fileName = document.querySelector('[itemprop=name]').content;
-    if (getFileExtension(fileName) == "pdf") {
+    if (getFileExtension(fileName) == "pdf" || getFileExtension(fileName) == "") {
         let ua = detect.parse(navigator.userAgent);
         let btnContainer = document.createElement("div");
 
