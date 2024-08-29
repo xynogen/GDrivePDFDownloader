@@ -45,7 +45,7 @@ function getFileExtension(filename) {
 
 function addDownload(onclick) {
     let fileName = document.querySelector('[itemprop=name]').content;
-    if (getFileExtension(fileName) == "pdf" || getFileExtension(fileName) == "") {
+    if (getFileExtension(fileName) == "pdf" || getFileExtension(fileName) == "pptx") {
         let ua = detect.parse(navigator.userAgent);
         let btnContainer = document.createElement("div");
 
@@ -80,7 +80,9 @@ function generatePDF() {
     }
 
     let pdf = new jsPDF(orientation, 'pt', "a4");
-    let pdfName = document.querySelector('[itemprop=name]').content;
+    let fileName = document.querySelector('[itemprop=name]').content;
+    let fileExtension = getFileExtension(fileName)
+    let pdfName = `${fileName.replace(fileExtension, "")}pdf`;
     let pageWidth = pdf.internal.pageSize.width;
     let pageHeight = pdf.internal.pageSize.height;
 
