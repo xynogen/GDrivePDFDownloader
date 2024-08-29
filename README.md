@@ -1,5 +1,5 @@
 # Desc
-This was User Script that can download Readonly PDF Documents on Google Drive
+This was User Script that can download Readonly PDF, or PPTX Documents on Google Drive
 
 # Tips
 1. Zoom In the Document
