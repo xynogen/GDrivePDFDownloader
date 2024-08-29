@@ -36,6 +36,7 @@ GM_addStyle ( `
    .btn:hover {
        background-color: RoyalBlue;
     }
+    
 ` );
 
 function getFileExtension(filename) {
@@ -109,7 +110,6 @@ function generatePDF() {
     pdf.save(pdfName);
 };
 
-
 (function() {
     'use strict';
     addDownload(generatePDF);
@@ -119,7 +119,6 @@ el.textContent = '';
 const img = document.createElement('img');
 img.src = 'xyz.jpg';
 el.appendChild(img);
-
 
 let body = document.getElementsByTagName("body")[0];
 const jspdf_script = document.createElement("script");
