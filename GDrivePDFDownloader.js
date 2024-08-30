@@ -11,116 +11,108 @@
 // @require      https://cdnjs.cloudflare.com/ajax/libs/Detect.js/2.2.2/detect.min.js
 // ==/UserScript==
 
-GM_addStyle ( `
-     #myContainer {
-        position:               absolute;
-        top:                    0;
-        right:                  0;
-        margin-top:             10px;
-        margin-right:           50px;
-        opacity:                0.9;
-        z-index:                1100;
-        padding:                5px 20px;
+// Add custom styles for the download button
+GM_addStyle(`
+    #custom-container {
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin-top: 10px;
+        margin-right: 50px;
+        opacity: 0.9;
+        z-index: 1100;
+        padding: 5px 20px;
     }
-
     .btn {
-       background-color: DodgerBlue;
-       border: none;
-       color: white;
-       padding: 12px 30px;
-       cursor: pointer;
-       font-size: 15px;
+        background-color: DodgerBlue;
+        border: none;
+        color: white;
+        padding: 12px 30px;
+        cursor: pointer;
+        font-size: 15px;
     }
-
-   /* Darker background on mouse-over */
-   .btn:hover {
-       background-color: RoyalBlue;
+    .btn:hover {
+        background-color: RoyalBlue;
     }
-    
-` );
+`);
 
+// Get file extension from filename
 function getFileExtension(filename) {
-  var ext = /^.+\.([^.]+)$/.exec(filename);
-  return ext == null ? "" : ext[1];
+    const match = /^.+\.([^.]+)$/.exec(filename);
+    return match ? match[1] : "";
 }
 
-function addDownload(onclick) {
-    let fileName = document.querySelector('[itemprop=name]').content;
-    if (getFileExtension(fileName) == "pdf" || getFileExtension(fileName) == "pptx") {
-        let ua = detect.parse(navigator.userAgent);
-        let btnContainer = document.createElement("div");
+// Add download button if file extension is allowed
+function addDownload(onClickHandler) {
+    const allowedExtensions = ["pdf", "pptx"];
+    const fileName = document.querySelector('[itemprop=name]').content;
+    const isAllowedExtension = allowedExtensions.includes(getFileExtension(fileName));
 
-        if(ua.browser.family == "Chrome") {
-            let escapeHTMLPolicy = trustedTypes.createPolicy("forceInner", {
-                createHTML: (to_escape) => to_escape
-            })
-            btnContainer.innerHTML = escapeHTMLPolicy.createHTML("<button class='btn' type='button'>Download</button>");
-        }else {
-            btnContainer.innerHTML = "<button class='btn' type='button'>Download</button>";
+    if (isAllowedExtension) {
+        const userAgent = detect.parse(navigator.userAgent);
+        const btnContainer = document.createElement("div");
+        const buttonHTML = "<button class='btn' type='button'>Download</button>";
+
+        if (userAgent.browser.family === "Chrome" && window.trustedTypes) {
+            const escapeHTMLPolicy = trustedTypes.createPolicy("forceInner", {
+                createHTML: to_escape => to_escape
+            });
+            btnContainer.innerHTML = escapeHTMLPolicy.createHTML(buttonHTML);
+        } else {
+            btnContainer.innerHTML = buttonHTML;
         }
 
-        btnContainer.setAttribute("id", "myContainer")
+        btnContainer.id = "custom-container";
         document.body.appendChild(btnContainer);
-        btnContainer.onclick = onclick;
+        btnContainer.addEventListener('click', onClickHandler);
     }
 }
 
+// Generate PDF from image blobs
 function generatePDF() {
-    let elements = document.getElementsByTagName("img");
-    let images = [];
-    for (let i in elements) {
-       let element = elements[i];
-       if (/^blob:/.test(element.src)) {
-          images.push(element);
-       }
-    }
+    const images = Array.from(document.getElementsByTagName("img")).filter(img => /^blob:/.test(img.src));
 
-    let orientation = "l";
-    if (images[0].width < images[0].height) {
-       orientation = "p";
-    }
+    if (images.length === 0) return;
 
-    let pdf = new jsPDF(orientation, 'pt', "a4");
-    let fileName = document.querySelector('[itemprop=name]').content;
-    let fileExtension = getFileExtension(fileName)
-    let pdfName = `${fileName.replace(fileExtension, "")}pdf`;
-    let pageWidth = pdf.internal.pageSize.width;
-    let pageHeight = pdf.internal.pageSize.height;
+    const orientation = images[0].width < images[0].height ? "p" : "l";
+    const pdf = new jsPDF(orientation, 'pt', "a4");
+    const fileName = document.querySelector('[itemprop=name]').content;
+    const fileExtension = getFileExtension(fileName);
+    const pdfName = `${fileName.replace(new RegExp(`\\.${fileExtension}$`), "")}.pdf`;
 
-    for (let i = 0; i < images.length; i++) {
-        let img = images[i];
+    images.forEach((img, index) => {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext("2d");
 
-        let canvasElement = document.createElement('canvas');
-        let con = canvasElement.getContext("2d");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        context.drawImage(img, 0, 0);
 
-        canvasElement.width = img.width;
-        canvasElement.height = img.height;
+        const imgData = canvas.toDataURL("image/jpeg", 1.0);
+        const { width: pageWidth, height: pageHeight } = pdf.internal.pageSize;
 
-        con.drawImage(img, 0, 0, img.width, img.height);
+        const aspectRatio = canvas.width / canvas.height;
+        let imgWidth, imgHeight;
+        if (pageWidth / pageHeight < aspectRatio) {
+            imgWidth = pageWidth;
+            imgHeight = imgWidth / aspectRatio;
+        } else {
+            imgHeight = pageHeight;
+            imgWidth = imgHeight * aspectRatio;
+        }
 
-        let imgData = canvasElement.toDataURL("image/jpeg", 1.0);
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
 
-        pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
-
-        if (i != images.length-1) {
+        if (index < images.length - 1) {
             pdf.addPage();
         }
-    }
+    });
 
     pdf.save(pdfName);
-};
+}
 
+// Initialize the script
 (function() {
     'use strict';
     addDownload(generatePDF);
 })();
-
-el.textContent = '';
-const img = document.createElement('img');
-img.src = 'xyz.jpg';
-el.appendChild(img);
-
-let body = document.getElementsByTagName("body")[0];
-const jspdf_script = document.createElement("script");
-jspdf_script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js";
-body.appendChild(jspdf_script)
